@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="/static/blog/bootstrap/css/bootstrap.css">
+</head>
+<body>
+<h3>登录博客园 - 代码改变世界</h3>
+<div class="container">
+    <div class="row">
+        <div class="col-md-6 col-md-offset-3">
+            <form action="" enctype="application/x-www-form-urlencoded">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="user">登录用户名</label>
+                    <input type="text" id="user" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="pwd">密码</label>
+                    <input type="password" id="pwd" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="pwd">验证码</label>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <input type="text" id="valid_code" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <img width='220' height='40' id='valid_code_img' src="/get_validCode_img" alt="">
+                        </div>
+                    </div>
+                </div>
+                <input type="button" value='登录' class="btn btn-default pull-right login_btn">
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="/static/blog/bootstrap/js/jquery-3.3.1.min.js"></script>
+<script>
+{#    验证码刷新#}
+    $('#valid_code_img').click(function () {
+        $(this)[0].src += '?'
+    })
+
+{#    登录验证#}
+    $('.login_btn').click(function () {
+        $.ajax({
+            url:'',
+            type:'post',
+            data:{
+                user:$('#user').val,
+                pwd:$('#pwd').val,
+                valid_code:$('#valid_code').val(),
+                csrfmiddlewaretoken:$("[name='csrfmiddlewaretoken']").val(),
+            },
+            success:function(data){
+                    console.log(data)
+        }
+        })
+    })
+
+</script>
+
+
+</body>
+</html>
