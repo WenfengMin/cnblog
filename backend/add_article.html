@@ -1,0 +1,71 @@
+{% extends 'backend/base.html' %}
+
+
+{% block content %}
+    <form action="" method="post">
+        {% csrf_token %}
+        <div class="add_article">
+            <div class="alert-success text">添加文章</div>
+
+            <div class="add_article_region">
+                <div class="title form-group">
+                    <label for="">标题</label>
+                    <div>
+                        <input type="text" name="title">
+                    </div>
+                </div>
+
+                <div class="content form-group">
+                    <label for="">内容(Kindeditor编辑器，不支持拖放/粘贴上传图片)</label>
+                    <div>
+                        <textarea name="content" id="article_content" cols="30" rows="10"></textarea>
+                    </div>
+                </div>
+                <input type="submit" class="btn btn-default">
+            </div>
+
+        </div>
+    </form>
+
+    <script src="/static/js/jquery-3.2.1.min.js"></script>
+
+    {#引入文本编辑器#}
+    <script charset="utf-8" src="/static/blog/kindeditor/kindeditor.js"></script>
+    {# 文本编辑器的用法#}
+    <script>
+            KindEditor.ready(function(K) {
+                    window.editor = K.create('#article_content',{
+                        // 配置编辑器初始化参数
+                       width:'800px',
+                       height:'500px',
+                        // 下面的items为默认值，也可以不写；也可以根据自己的需要写一部分
+                        items:[
+                            'source', '|', 'undo', 'redo', '|', 'preview', 'print', 'template', 'code', 'cut', 'copy', 'paste',
+                            'plainpaste', 'wordpaste', '|', 'justifyleft', 'justifycenter', 'justifyright',
+                            'justifyfull', 'insertorderedlist', 'insertunorderedlist', 'indent', 'outdent', 'subscript',
+                            'superscript', 'clearhtml', 'quickformat', 'selectall', '|', 'fullscreen', '/',
+                            'formatblock', 'fontname', 'fontsize', '|', 'forecolor', 'hilitecolor', 'bold',
+                            'italic', 'underline', 'strikethrough', 'lineheight', 'removeformat', '|', 'image', 'multiimage',
+                            'flash', 'media', 'insertfile', 'table', 'hr', 'emoticons', 'baidumap', 'pagebreak',
+                            'anchor', 'link', 'unlink', '|', 'about'
+                    ],
+                        resizeType:0,      // 是否可拖动窗口
+                        uploadJson:'/upload/',
+                        extraFileUploadParams:{
+                           csrfmiddlewaretoken:$("[name='csrfmiddlewaretoken']").val()
+                        },
+                        // 自定义要上传的文件的名字
+                        filePostName:'upload_img',
+
+
+
+                    });
+            });
+    </script>
+
+
+{% endblock %}
+
+
+
+

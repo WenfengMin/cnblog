@@ -111,7 +111,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# 自己添加该变量，否则迁移不成功
+
+# 自己添加该变量，否则数据库迁移不成功，
+# 因为UserInfo表继承的是原生的用户表AbstractUser
 AUTH_USER_MODEL = 'blog.UserInfo'
 
 # Internationalization
@@ -119,20 +121,33 @@ AUTH_USER_MODEL = 'blog.UserInfo'
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Shanghai'
 
 USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+# 转时区
+# USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
+# 别名，浏览器访问时候要输入的名字
 STATIC_URL = '/static/'
+# STATIC_URL = '/yuan/'    # 此时，浏览器中需要输入yuan，才能访问到
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static')
 ]
+
+
+# 用户上传相关的配制
+MEDIA_URL = "/media/"    # 别名
+# media的绝对路径
+MEDIA_ROOT = os.path.join(BASE_DIR,'media')
+
+

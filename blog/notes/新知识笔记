@@ -1,0 +1,86 @@
+1 js的三元表达式
+    目的：通常将将if...else...用三元来替代，仅仅是为了让代码更简洁精辟
+    语法：
+        表达式 (expr1)?(expr2):(expr3)
+        在expr1求值为True时的值为expr2，在expr1求值为False时的值为expr3
+
+
+2 用到的新模块
+    1 from PIL import Image,ImageDraw,ImageFont
+        django封装的操作图像的模块
+
+    2 from io import BytesIO
+        内存句柄
+
+    3 from django.http import JsonResponse
+        JsonResponse()会直接将字典{}序列化成json字符串，
+        ajax拿到之后，也不用反序列化，而是可以直接取值
+
+
+3 噪点噪线
+    width = 220
+    height = 40
+    for i in range(100):    # 躁线
+        x1 = random.randint(0,width)
+        x2 = random.randint(0,width)
+        y1 = random.randint(0,height)
+        y2 = random.randint(0,height)
+        draw.line((x1,y1,x2,y2),fill=get_random_color())
+
+    for i in range(400):     # 躁点
+        draw.point([random.randint(0,width),random.randint(0,height),fill=get_random_color()])
+        x = random.randint(0,width)
+        y = random.randint(0,height)
+        draw.arc((x,y,x+4,y+4),0,90,fill=get_random_color())
+
+
+4 models中字段的null=True和blank=True
+    null：1 若为True，空值将会被存储为NULL，默认为False
+          2 null 是针对数据库而言，如果null=True, 表示数据库的该字段
+            可以为空，那么在新建一个model对象的时候是不会报错的。
+    blank：1 若为True，字段允许为空，默认不允许
+           2 blank 是针对表单的，如果blank=True，表示你的表单填写该字段的时候可以不填，
+             但是对数据库来说，没有任何影响。
+             如admin界面下增加model一条记录的时候。直观的看到就是该字段不是粗体。
+
+
+5 关于内嵌类 “class Meta”的讲解：
+    1 功能：作为嵌套类，主要目的是给上级类添加一些功能，或者指定一些标准。
+         即给model定义元数据，所谓元数据，就是：“不是一个字段的任何数据” 。
+    2 常见选项：比如排序选项, admin 选项，unique_together选项等等。
+    【说明】：没有一个选项是必需的，是否添加class Meta到model完全是可选的
+    3 常见选项解析：
+        unique_together：当需要通过两个字段保持唯一性时使用。会在Django admin层和数据库层
+                         同时做出限制(也就是相关的UNIQUE语句会被包括在create table语句中)
+        verbose_name：给模型类起一个更可读的名字。
+
+    4 示例：
+    class Publisher(models.Model):
+        ...
+        ...
+        class MeTa:
+            abstract = True        #抽象类
+            db_table = 'axf_wheel'
+            ordering = ['order_date']    # 按订单升序排列
+
+        解析：
+            1 abstract=True，是为了继承，将该基类定义为抽象类，即不必生成数据库表单，只作为一个可以继承的基类，
+              把一些子类必须的代码放在基类，避免重复代码也避免重复录入数据库。大概是这么个意思吧？
+
+            2 db_table='xxxx'，指定该类的数据库 表单名字。当然如果不指定也没关系，Django会自动默认的按照一定规则
+              生成数据模型对应的数据库表名。至于合不合你的意那就得看缘分了，所以自己指定往往比较好。
+
+            3 ordering=‘xxxxx’，表示按照指定的字段进行数据库的排序。主要是为了好看好查找。
+              你可以指定任意的表单名称或内容，数据库生成之后就会按照指定的列进行排序。还可以升序降序随机，唉反正挺复杂的。
+
+            4 总结：其实以上三种Django中model嵌套类的元数据定义，都涉及不少的知识点且有多种选择和用法。甚至这种嵌套类中可以有十几种
+            不同的元数据定义方法，真要研究下去晕都晕死了。还好没有一个选项是必需的，是否添加class Meta到你的model完全是可选的。
+
+
+
+
+
+
+
+
+

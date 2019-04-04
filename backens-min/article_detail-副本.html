@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+    {% csrf_token %}
+    <div class="article_info">
+        <h3 class="text-center title">{{ article_obj.title }}</h3>
+
+        <div class="cont">
+            {{ article_obj.content|safe }} {#标签会被渲染#}
+        </div>
+
+        <div id="div_digg">
+            <div class="diggit action">
+                <span class="diggnum" id="digg_count">{{ article_obj.up_count }}</span>
+            </div>
+            <div class="buryit action">
+                <span class="burynum" id="bury_count">{{ article_obj.down_count }}</span>
+            </div>
+            <div class="clear"></div>
+            <div class="diggword" id="digg_tips" style="color: red;">
+            </div>
+        </div>
+
+        <script>
+            $('#div_digg .action').click(function () {
+                var is_up = $(this).hasClass('diggit');
+                $obj = $(this).children('span');
+
+                $.ajax({
+                    url: '/digg/',
+                    type: 'post',
+                    data: {
+                        'is_up':is_up,
+                        'article_id':{{ article_obj.pk }},
+                        'csrfmiddlewaretoken': $("[name='csrfmiddlewaretoken']").val(),
+                    },
+                    success: function (data) {
+                        if (data.state){
+                            var val = parseInt($obj.text());
+                            $obj.text(val+1);
+                        }
+                        else {
+                            var val = data.handled?'您已经推荐过！':'您已经反对过！';
+                            $('#digg_tips').html(val);
+
+                            setTimeout(function () {
+                                $('#digg_tips').html('')
+                            },1000)
+                        }
+                    }
+                })
+            })
+        </script>
+    </div>
+{% endblock %}
+
+

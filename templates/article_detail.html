@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+    {% csrf_token %}
+    <div class="article_info">
+        <h3 class="text-center title">{{ article_obj.title }}</h3>
+
+        <div class="cont">
+            {# 解释：若不加safe，则显示到页面的是被转译的字符串（如对<>分别会被转译成&lt/&gt），加上safe之后就可以正常显示了#}
+            {# XSS攻击：恶意提交类似于<script>alert(123)</script>的标签 #}
+            {# django的初衷是怕有人恶意攻击，所以默认对特殊字符如<>按照转译符号处理成&lt/&gt，不做渲染，即默认不加safe #}
+            {# 在开发中，若需要渲染，则直接使用django提供的safe即可#}
+            {# 当然，也不能一味依赖django的safe，作为开发人员，应该在用户提交文章入库前（入库中不能有这种标签），就检测其提交的文章内容，是否含有敏感标签如<script>等，若有，提示用户含有敏感词汇等等，将其拦截#}
+            {#        {{ article_obj.content }}       {#标签不会被渲染#}
+            {{ article_obj.content|safe }} {#标签会被渲染#}
+            {#    加safe的效果：告诉django对用户提交的数据不要做转译（如不要将<转译成&lt，>转译成&gt），而是要原封不动的提交给服务器#}
+            {#    而对用户所提交数据，在入库时进行安全性的检测即可 若含有敏感词汇，不让其提交#}
+        </div>
+
+        <br>
+
+        {# 点赞和反对#}
+        <div class="clearfix">
+            <div id="div_digg">
+                <div class="diggit action">
+                    <span class="diggnum" id="digg_count">{{ article_obj.up_count }}</span>
+                </div>
+                <div class="buryit action">
+                    <span class="burynum" id="bury_count">{{ article_obj.down_count }}</span>
+                </div>
+                <div class="clear"></div>
+                <div class="diggword" id="digg_tips" style="color: red;">
+                </div>
+            </div>
+        </div>
+
+
+        {# 评论#}
+        <div class="comments list-group">
+
+            <p class="tree_btn">评论树</p>
+            <div class="comment_tree">
+
+
+            </div>
+
+
+            <script>
+                $('.tree_btn').click(function () {
+
+                    $.ajax({
+                        url:'/get_comment_tree/',
+                        type:'get',
+                        data:{
+                            article_id:'{{ article_obj.pk }}',
+                        },
+                        success:function (data) {
+                            console.log(data);
+                            
+                            $.each(data,function (index,comment_object) {
+                                var pk = comment_object.pk;
+                                var content = comment_object.content;
+                                var parent_comment_id = comment_object.parent_comment_id;
+                                // 构建含样式的标签字符串，append到对应“评论树”下的div标签中即可
+                                var s = '<div class="comment_item" comment_id="+pk+"><span>'+content+'</span></div>';
+
+                                // !表示取反
+                                if(!parent_comment_id){
+                                    // 此时是根评论，直接append到“评论树”下的div标签中即可
+                                    // 下面涉及到的是jquery的语法，直接用+进行字符串的拼接，可自己学习
+                                    $('.comment_tree').append(s);
+                                }else {
+                                    // 此时是子评论，需要先找到其父亲，再append到其父亲所在位置的div标签中
+                                    $('[comment_id='+parent_comment_id+']').append(s);
+
+                                }
+                            })
+                        },
+                    })
+                })
+            </script>
+
+
+            {# render方法显示已经存在的（即已经保存到数据库中的）所有评论列表 #}
+            <p>评论列表</p>
+            <ul class="comment_list list-group">
+                {% for comment in comment_list %}
+                    <li class="list-group-item">
+                        <div>
+                            <a href=""># {{ forloop.counter }}楼</a> &nbsp;&nbsp;
+                            <span>{{ comment.create_time|date:'Y-m-d H:i'}}</span>
+                            <a href=""><span>{{ comment.user.username }}</span></a>  &nbsp;&nbsp;
+                            <a href="" class="pull-right reply_btn" username="{{ comment.user.username }}" comment_pk="{{ comment.pk }}">回复</a>
+                        </div>
+
+{#                    render方法显示子评论 #}
+                        {% if comment.parent_comment_id %}
+                            <div class="pid_info well">
+                                <p>
+                                    {{ comment.parent_comment.user.username }}:{{ comment.parent_comment.content }}
+                                </p>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="comment_con">
+                            <p>{{ comment.content }}</p>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+
+
+            <p class="glyphicon glyphicon-comment">发表评论</p>
+            <p>昵称：<input type="text" id="tbCommentAuthor" class="author" disabled="disabled" size="50"
+                         value="{{ request.user.username }}"></p>
+            <p>评论内容：</p>
+            <textarea name="" id="comment_content" cols="70" rows="10"></textarea>
+            <p>
+                <button class="btn btn-default comment_btn">提交评论</button>
+            </p>
+        </div>
+
+
+        <script>
+            {# 点赞请求#}
+            $('#div_digg .action').click(function () {
+                var is_up = $(this).hasClass('diggit');
+                {#alert(is_up);#}
+
+                $obj = $(this).children('span');
+
+                {# 因为点赞和反对都是局部刷新，页面的其他地方都没有刷新，所以发送的是ajax请求#}
+                {#                需要重新开一个url来接收并处理该ajax请求，#}
+                $.ajax({
+                    url: '/digg/',
+                    type: 'post',
+                    data: {
+                        'is_up': is_up,
+                        'article_id':{{ article_obj.pk }},
+                        'csrfmiddlewaretoken': $("[name='csrfmiddlewaretoken']").val(),
+                    },
+                    success: function (data) {
+                        {#console.log(data);#}
+
+                        if (data.state) {
+                            var val = parseInt($obj.text());
+                            $obj.text(val + 1);
+
+                            {#if (is_up){#}
+                            {#    var val = parseInt($('#digg_count').text());#}
+                            {#    $('#digg_count').text(val+1)#}
+                            {# } #}
+                            {#else {#}
+                            {#    var val = parseInt($('#bury_count').text());#}
+                            {#    $('#bury_count').text(val+1)#}
+                            {# } #}
+                        }
+                        else {
+                            {# js的三元表达式用法：详情见笔记#}
+                            {#                           data.handled条件成立，即为true，则把'您已经推荐过！'赋值给val；反之，把'您已经反对过！'赋值给val #}
+                            var val = data.handled ? '您已经推荐过！' : '您已经反对过！';
+                            $('#digg_tips').html(val);
+
+                            {#if (data.handled){#}
+                            {#    $('#digg_tips').html('您已经推荐过！')#}
+                            {# } #}
+                            {#else {#}
+                            {#    $('#digg_tips').html('您已经反对过！')#}
+                            {# } #}
+
+                            setTimeout(function () {
+                                $('#digg_tips').html('')
+                            }, 1000)
+                        }
+                    }
+                })
+            });
+
+
+
+            // 评论请求
+            {# 父评论的id，默认为空 #}
+            var pid = '';
+            $('.comment_btn').click(function () {
+
+                var content = $('#comment_content').val();
+
+                // pid有值，表示是子评论，需要去掉评论内容的第一行@soft
+                if(pid){
+                    var index = content.indexOf('\n');
+                    content = content.slice(index+1);
+                }
+
+                $.ajax({
+                    url: '/comment/',
+                    type: 'post',
+                    data: {
+                        'csrfmiddlewaretoken': $("[name='csrfmiddlewaretoken']").val(),
+                        'article_id':{{ article_obj.pk }},
+                        'content': content,
+                        'pid': pid,
+                    },
+                    success: function (data) {
+
+                        console.log(data);
+
+                        {# ajax方法立马显示当前用户提交的评论，将其追加到render方法已经显示的评论列表后面 #}
+                        var create_time = data.create_time;
+                        var username = data.username;
+                        var content = data.content;
+
+                        {# 使用es6语法将上述变量嵌入到下面拥有标签字符串样式的s变量中#}
+                        {# 第一步：构建“标签字符串s”：使用反引号#}
+                        var s = `
+                            <li class="list-group-item">
+                                <div>
+                                    <span>${create_time}</span>
+                                    <a href=""><span>${username}</span></a>  &nbsp;&nbsp;
+                                </div>
+                                <div class="comment_con">
+                                    <p>${content}</p>
+                                </div>
+                            </li>`;
+
+                        {# 第二步：通过append方法将标签字符串s追加到ul标签的末尾 #}
+                        $('ul.comment_list').append(s);
+
+
+                        // 评论完后，应清空评论框，同时要清空pid
+                        $('#comment_content').val('');
+                        pid = '';
+
+
+                    {#用户点击提交按钮发生了2件事：#}
+{#                        1：生成一条comment_obj的评论对象，并将其保存到数据库（在视图函数中完成）#}
+{#                        2：将用户提交的当前评论内容通过ajax的dom方法立马显示到页面中的评论列表的末尾（追加）#}
+                    }
+                })
+            });
+
+
+            // 回复按钮事件
+            $('.reply_btn').click(function () {
+
+                // 获取焦点
+                $('#comment_content').focus();
+
+                var val = '@' + $(this).attr('username') + '\n';
+                $('#comment_content').val(val);
+
+                // 给pid赋值
+                pid = $(this).attr('comment_pk');
+
+
+            })
+        </script>
+    </div>
+{% endblock %}
+
+
+{#涉及到的知识点：#}
+{# 1 点赞之后，页面的点赞数立马加1，是通过ajax的dom操作实现的 #}
+{# 2 评论之后，通过刷新页面，可看到刚才的评论内容，叫render显示#}
+

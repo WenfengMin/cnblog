@@ -1,0 +1,137 @@
+
+功能2 注册：基于forms组件和ajax请求实现注册功能
+
+    1 基于forms组件，设计注册页面
+        1 基于for循环渲染页面。{{ field }}实际上会被渲染成input标签，要想label的for属性和input的id属性一样，用到的
+          知识点：field.auto_id，即对不同的循环字段，该值会发生相应的变化
+            {% for field in form %}
+                <div class="form-group">
+                    <label for="{{ field.auto_id }}">{{ field.label }}</label>
+                    {{ field }}
+                </div>
+            {% endfor %}
+
+        2 点击头像 等同于 点击input标签：
+            <label for="avatar">
+                头像
+                <img id='avatar_img' width=60 height=60 src="/static/blog/img/default.png" alt="">
+            </label>
+            <input type="file" id="avatar">
+
+        3 注册页面的“头像预览”功能
+            1 获取用户选中的文件对象
+                注意：并不是单击（click）事件，而是单击默认的头像之后，要选择一个图像，才会变成所选择的那个图片
+                change事件
+                var file_obj = $(this)[0].files[0];
+            2 获取文件对象的路径
+                var reader = new FileReader();
+                reader.readAsDataURL(file_obj);
+            3 修改img标签的src属性=所选文件对象的路径
+                $('#avatar_img').attr('src',reader.result)
+
+    2 基于ajax提交数据
+        1 错误信息的展示：
+            1 views.py：
+                 form.errors    # {'user':[...]}
+
+            2 ajax.success:
+                 $.each(data.msg,function (field,error_list) {
+                     console.log(field,error_list);
+
+                     $('#id_'+field).next().html(error_list[0]);
+                     $('#id_'+field).parent().addClass('has-error');
+                 });
+
+        2 对form标签下面的标签循环用到的方法：serializeArray()
+            var request_data = $('#form').serializeArray();
+            进而可对request_data进行循环遍历
+
+        3 jquery的遍历——$.each()方法：
+            如1：$.each(data.msg,function(field,error_list) {
+                    $('#id_'+field).next().html(error_list[0]);
+                });
+            如2：$.each(request_data,function(index,data) {
+                    formdata.append(data.name,data.value);
+                });
+
+        4 <input type="password" name="pwd" id="id_pwd" class="form-control" maxlength="32" required="">
+          <span class="pull-right error">该字段不能为空</span>
+          1 对于上面的这种格式，要获取span标签的一个方法：先获取input标签，再调用next()方法：
+                $('#id_pwd').next().html(error_list[0])
+          2 对其父级标签的操作：
+                 $('#id_pwd').parent().addClass('has-error');  其中，addClass('has-error')为bootstrap提供的方法
+
+    3 局部钩子与全局钩子校验：
+        1 user字段不能是已经被注册过的
+        2 电话号码要固定11位
+        3 两次密码不一致
+
+    4 用户注册提交数据的保存（前提：通过校验）
+        1 FileField和ImageField的区别：
+            1 ImageField：只允许上传图片，所以该字段接收的一定要是一个图片对象；
+              FileField：可以上传任何文件(如mp4/avi/png等)，该字段接收的一定是一个“文件对象”。
+                         注意与其他字段的区分：如username等，接收一个字符串即可
+
+            2 class UserInfo(AbstractUser):
+                nid = models.AutoField(primary_key=True)
+                telephone = models.CharField(max_length=11,null=True,unique=True)
+                avatar = models.FileField(upload_to='avatars/',default='/avatars/default.png')
+
+                avatar_obj = request.FILES.get('avatar')
+                user_obj = UserInfo.objects.create_user(username=user,password=pwd,email=email,
+                                                        avatar=avatar_obj,,telephone=tel)
+            3 Django实现：
+                django会默认将用户选择的文件对象下载到项目的根目录中avatars文件夹（若没有该文件夹，django会自动创建），
+                即跟manage.py在一层目录下；注意：user_obj的avatar保存的是“文件的相对路径”。
+
+            4 FileField中的
+                upload_to：用户注册时，选择的图片，将会被保存的文件夹路径
+                default: 默认的上传路径
+
+
+        2 Media配置——MEDIA_ROOT：
+            1 Django有两种静态文件：
+                1 /static/    ：服务器自己用的相关文件，如js/css/img等static静态文件
+                2 /media/     : 用户上传的文件，如头像、作业、简历等
+
+            2 因为对于 avatar_obj = request.FILES.get('avatar')
+                     user_obj = UserInfo.objects.create_user(username=user,password=pwd,email=email,avatar=avatar_obj,,telephone=tel)
+                django会默认将文件对象下载到项目的根目录中avatars文件夹
+
+              而一旦配制了：
+                    MEDIA_ROOT = os.path.join(BASE_DIR,'media')
+              django会默认将文件对象下载到MEDIA_ROOT的avatars文件夹中（若没有该文件夹，django会自动创建）
+
+              3 media配制的好处：
+                只要在UserInfo表中定义了FileField/ImageField等字段的对象，
+                都会上传到media下面的各自的文件夹中，耦合性更好。
+                    如上传的是作业，直接在media下面再创建一个homework的应用文件夹就好了，
+                    若上传的是简历，创建一个resume的文件夹就好了，实现不同应用的解耦，
+                    但是这些上传的文件统一都放在media路径下面了。
+
+        3 Media配置——MEDIA_URL：
+            浏览器如何能直接访问到media的数据？
+                如：客户端能直接访问static文件夹中的数据，如127.0.0.1:8000/static/blog/img/default.png
+                   是因为我们在settings中同时配制了STATICFILES_DIRS和STATIC_URL。
+                同理，要直接访问到media的数据，方法如下：
+                    1 在settings中配制（与用户上传相关的配制）
+                        MEDIA_URL = "/media/"    # 别名
+                        MEDIA_ROOT = os.path.join(BASE_DIR,'media')
+                    2 同时在urls中添加一条路径：
+                        re_path(r'media/(?P<path>.*)$',serve,{'document_root':settings.MEDIA_ROOT})
+                        【注意】static的路由，是django已经自动配好的，不用额外操作这一步。
+            【说明】static/media等配制文件，是可以给用户看的，所以可以在settings中做相应的配制，让用户看到。
+                  但是像blog等放源码的文件，坚决不能给用户看，否则存在别人攻击服务器的危险。
+
+    5 关于注册页面的总结：
+        1 视图部分：
+             1 注册成功：
+                 则生成一条用户信息，并保存到数据库；并跳转到登录页面（简单）
+             2 注册失败
+                 则把错误信息返回给浏览器，并在浏览器显示错误信息提示（难点）
+
+        2 浏览器部分：
+            1 ajax发送请求到服务器，数据如何发送？
+            2 对服务器返回的数据，失败时，如何处理seccess中的data？
+
+

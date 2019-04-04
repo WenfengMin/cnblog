@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="/static/blog/bootstrap/css/bootstrap.css">
+    <style>
+        #avatar_img{
+            margin-left: 20px;
+        }
+        #avatar{
+            display: none;
+        }
+        .error{
+            color: red;
+        }
+    </style>
+</head>
+<body>
+{#<h3>注册新用户</h3>#}
+<div class="container">
+    <div class="row">
+        <div class="col-md-6 col-md-offset-3">
+            <h3>注册新用户</h3>
+            <form id="form" action="">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="form-group">
+{#                        <label for="user">{{ field.label }}</label>#}
+{#                        field.auto_id的值会根据不同字段而发生变化，如对tel字段，此时field.auto_id为id_tel#}
+                        <label for="{{ field.auto_id }}">{{ field.label }}</label>
+                        {# {{ field }}实际上会被渲染成input标签 #}
+                        {{ field }} <span class="pull-right error"></span>
+                    </div>
+                {% endfor %}
+
+{#              上传头像，因为头像不需要校验，所以不需要放到forms组件里面，此处单独写#}
+                <div class="form-group">
+{#                    label的for属性和input的id属性一样时，点击label中的元素（"头像"或img标签），都相当于在点击input框#}
+                    <label for="avatar">
+                        头像
+                        <img id='avatar_img' width=60 height=60 src="/static/blog/img/default.png" alt="">
+                    </label>
+{#                    <input type="file" class="glyphicon glyphicon-user">#}   {# 方法1 #}
+{#                    <input type="file" id="avatar" style="display: none">#}  {# 方法2，简写如下 #}
+                    <input type="file" id="avatar">   {# 此时，可将input标签隐藏起来 #}
+                </div>
+
+                <input type="button" value='注册' class="btn btn-primary reg_btn "><span class="error"></span>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script src="/static/blog/bootstrap/js/jquery-3.3.1.min.js"></script>
+<script>
+    // 头像预览
+    // jquery的change事件
+    $('#avatar').change(function () {
+        // 1 获取用户选中的文件对象
+        var file_obj = $(this)[0].files[0];
+        {#console.log($(this));    // #}
+        {#console.log($(this)[0]);    // input标签#}
+        {#console.log(typeof file_obj);    // object#}
+
+        // 2 获取文件对象的路径——文件阅读器
+        var reader = new FileReader();
+        // 读的时候，会花一些事件，但代码会继续往下走（异步操作），可能导致reader.result为空值
+        reader.readAsDataURL(file_obj);     // 无返回值，读完之后，会把结果放到reader中
+
+        // 解决办法：加上onload操作，即：等待reader读完，再执行onload内部的代码
+        reader.onload=function(){
+            // 3 修改img标签的src属性=所选文件对象的路径
+            $('#avatar_img').attr('src',reader.result)
+        };
+    });
+
+    {# ajax提交数据 #}
+    $('.reg_btn').click(function () {
+        {#console.log($('#form').serializeArray());#}
+
+        // 基于ajax提交数据
+        var formdata = new FormData();
+        // serializeArray得到的是列表，里面包含form表单中的各个键值对组成的字典
+        var request_data = $('#form').serializeArray();
+        {#console.log($('#form').serializeArray());#}
+        $.each(request_data,function (index,data) {
+            formdata.append(data.name,data.value);
+        });
+        // $.each()对request_data进行循环，每次循环做的操作为function函数
+        // 循环的键为request_data中的索引index，值为request_data中的每个字典，命名为data
+
+        {#formdata.append('email',$('#id_email').val());#}
+        {#formdata.append('tel',$('#id_tel').val());#}
+        {#formdata.append('user',$('#id_user').val());#}
+        {#formdata.append('pwd',$('#id_pwd').val());#}
+        {#formdata.append('r_pwd',$('#id_r_pwd').val());#}
+        {#formdata.append('csrfmiddlewaretoken',$("[name='csrfmiddlewaretoken']").val());#}
+
+        // 文件要单独上传
+        formdata.append('avatar',$("#avatar")[0].files[0]);
+
+        $.ajax({
+            url: '',
+            type: 'post',
+            processData:false,
+            contentType:false,
+            data: formdata,
+            success: function (data) {
+                if (data.user){
+                    // 注册成功
+                    location.href='/login/';
+                }
+                else{  // 注册失败
+                    {#console.log(data);#}
+                    {#console.log(data.msg);#}
+
+                    // 展示之前，要先清空上一次的错误信息，并且要把边框颜色清掉
+                    $('span.error').html('');    // 清除错误信息
+                    $('.form-group').removeClass('has-error');   // 清除边框样式
+
+                    // 展示此次提交的错误信息
+                    $.each(data.msg,function (field,error_list) {
+                        {#console.log(field,error_list);#}
+                        // 可以看出，field为每个字段的键，如email/pwd等，
+                        // error_list为每个字段的错误信息列表
+
+                        // 3 全局钩子之“两次密码不一致”，要单独拿出来渲染，因为此时匹配不到"id_字段名"：
+                        if (field == '__all__'){
+                            {#$('#id_r_pwd').next().html(error_list[0]);#}
+                            {#$('#id_r_pwd').parent().addClass('has-error');#}
+                            $('#id_r_pwd').next().html(error_list[0]).parent().addClass('has-error');    // 链式操作
+                        }
+
+                        // 1 先获取input标签(方法：id_拼接字段)，
+                        // 再调用next()方法，即可得到其后面的span标签，为其加错误信息
+                        $('#id_'+field).next().html(error_list[0]);
+
+                        // 2 为错误的input框设置样式：变红   addClass('has-error')为bootstrap提供的方法
+                        $('#id_'+field).parent().addClass('has-error');
+                        // $('#id_'+field)为input标签，其parent为div标签，即.form-group对应的标签，
+                        // 为其附上has-error(为bootstrap提供的属性)的属性，即可让边框变色
+                    });
+                }
+            },
+        })
+    })
+</script>
+
+</body>
+</html>

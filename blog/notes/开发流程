@@ -13,7 +13,7 @@
 
     (3) 设计系统首页：  完成文章列表的渲染
         <1> paginator分页器：实现分页功能
-        <2> 首页视图的分区：左中（主要功能区）右
+        <2> 首页视图的分区：左——中（主要功能区）——右
 
     (4) 设计个人站点页面
         <1> ORM查询：跨表/分组查询等
@@ -33,7 +33,7 @@
 
 2 设计表结构
     1 对于登录和注册，只需要用到一张表即可，即用户表。
-        1 而用用户认证组件的前提是，得用其自带的auth_user表，但是此处的需求，对于auth_user表里面含有的字段并不够用，
+        1 而用户认证组件的前提是，得用其自带的auth_user表，但是此处的需求，对于auth_user表里面含有的字段并不够用，
           即需要在该表的基础上，扩展一些字段。方法：自己定义一个表，在原表的基础上，扩展一些原表没有的字段。
         2 User类继承自AbstractUser类，而auth_user表就是有User类得到的，所以若该UserInfo表继承自AbstractUser类
          那么auth_user表中有的字段，UserInfo表也会有（即父类有的属性，UserInfo表都会有），而且还额外有上面定义的nid、telephone等字段。
@@ -45,7 +45,6 @@
         6 博客园里面显示每个用户的园龄，所以需要知道注册时间create_time，auto_now_add=True表示生成该字段时，默认给当前时间赋值。
 
         from django.contrib.auth.models import User,AbstractUser
-
         class UserInfo(AbstractUser):   # 用户信息表
             nid = models.AutoField(primary_key=True)
             telephone = models.CharField(max_length=11,null=True,unique=True)
@@ -61,7 +60,6 @@
     2 对于个人站点信息，本来可以放在UserInfo表中添加几个字段如title、site_name、theme中，
       但为了实现数据解耦（业务隔离），将用户数据和站点数据隔离开，所以此处单独定义了一张站点Blog表，
       只要将这两张表（UserInfo和Blog）实现一对一的关系即可。
-
         class Blog(models.Model):
             '''
             博客信息表（用户站点表，即每个用户的主页）
@@ -95,6 +93,7 @@
         444
             555
       222
+        666
       333
 
       Comment
@@ -104,19 +103,16 @@
           3      3          1         333           null
           4      4          1         444             1
           5      5          1         555             4
+          6      6          1         666             2
 
 
 
-
-
-
-3 按着每个功能分别进行开发
-
-
-
+3 按每个功能分别进行开发
 
 
 4 功能测试
+
+
 5 项目部署上线
 
 

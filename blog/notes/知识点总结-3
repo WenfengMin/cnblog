@@ -1,0 +1,144 @@
+
+3 设计系统首页：完成文章列表的渲染
+    <1> paginator分页器：实现分页功能
+    <2> 首页视图的分区：左——中（主要功能区）——右
+
+
+admin：
+    django内部的组件：后台数据管理（以web页面的形式进行管理，且必须是超级用户）
+
+    创建超级用户：
+        python manage.py createsuperuser   —— 针对用户认证组件对应的用户表
+        只有超级用户，才能进入到“http://127.0.0.1:8000/admin/”，进行后台管理
+
+    admin注册：
+        Blog：
+            站点名称：即alex/soft等后缀名
+
+
+4 设计个人站点页面
+    <1> ORM查询：跨表/分组查询等
+
+    1 基于对象的跨表查询（子查询）
+		正向查询：按字段
+		反向查询：表名小写(一对一)    /    表名小写_set.all()(一对多、多对多)
+
+	2 基于双下划线的跨表查询（join查询）
+		正向查询：按字段，如字段名__属性
+		反向查询：按表名，如表名__属性
+
+
+	补充：extra
+
+	    extra(select=None,where=None,params=None,tables=None,order_by=None,select_params=None)
+
+	    有些情况下，django的查询语法难以简单的表达复杂的where语句，对于这种情况，django提供了extra（）QuerySet修改机制，
+	    它能在QuerySet生成的sql从句中注入新句子
+
+        extra可以指定一个或多个 参数，如select、where or tables，这些参数不是必须的，但你至少要使用一个，要注意这些额外
+        的方式对不同的数据库引擎可能存在移植性的问题
+
+        参数之select
+
+        The select 参数可以让你在select语句中添加其他字段信息，它应该是一个字典，存放着属性名到sql从句的映射
+
+        queryResult=models.Article.object.extra(select={'is_recent':"create_time > '2019-01-26'"})
+
+        结果集合中，每个Entry对象都有一个额外的属性is_recent，其是一个布尔值，表示Article对象的create_time是否在2019-01-26之后
+
+        练习：
+            in mysql:
+                date_list = Article.objects.filter(user=user_obj).extra(select={'Y_m_date':"date_format(create_time,'%%Y-%%m')"}).\
+                                      values('Y_m_date').annotate(c=Count('nid')).values('Y_m_date','c')
+
+    4 日期归档查询的方式2：
+        from django.db.models.functions import TruncMonth
+
+        Sales.objects
+             .annotate(month=TruncMonth('timestamp'))   # Truncate to month and add to select list
+             .values('month')                           # group by month
+             .annotate(c=Count('id'))                   # select the count of the grouping
+             .values('month','c')                       # ...
+
+
+5 文章详情页
+    1 文章详情页的渲染
+
+    2 支持与反对
+        点赞人即当前登录人
+
+    3 评论
+        根评论：对文章的评论
+        子评论：对评论的评论
+        区别：是否有父评论
+
+        评论流程：
+            1 构建样式
+            2 提交根评论
+            3 显示根评论
+                --- render显示：
+                               效果：提交完评论后，评论不会马上显示，而是要刷新后才会显示
+                               方法：通过div等标签来显示
+                --- Ajax显示：
+                               效果：提交完评论后，会立马自动刷新页面。
+                               方法：在ajax中通过success回调函数，基于dom操作来显示
+
+                要点：用户点击提交评论按钮发生了2件事：
+                    1 生成一条comment_obj的评论对象，并将其保存到数据库（在视图函数中完成）
+                    2 将用户提交的当前评论内容通过ajax的dom方法立马显示到页面中的评论列表的末尾（追加）
+
+
+            4 提交子评论
+
+
+            5 显示子评论
+                --- render显示
+                --- Ajax显示
+
+            6 评论树的显示
+                111
+                    444
+                        555
+                222
+                    666
+                333
+
+                    Comment
+                       nid  user_id  article_id  content  parent_comment_id(null=True)
+                        1      1          1         111           null
+                        2      2          1         222           null
+                        3      3          1         333           null
+                        4      4          1         444             1
+                        5      5          1         555             4
+                        6      6          1         666             2
+
+
+6 事物操作
+    from django.db import transaction
+
+    with transaction.atomic():
+        pass
+
+
+7 发送邮件
+    settings中的配置：
+        EMAIL_HOST = 'smtp.exmail.qq.com'      # 若是163，改成smtp.163.com
+        EMAIL_PORT = 465                # 163的端口号：25
+        EMAIL_HOST_USER = ''            # 账号
+        EMAIL_HOST_PASSWORD = ''        # 密码
+        # DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+        EMAIL_USE_SSL = True
+
+
+
+8 后台管理
+
+    1 富文本编辑器kindeditor
+
+    2 beautifulSoup模块:防止xss攻击
+        from bs4 import BeautifulSoup
+
+        s = '<h1>hello</h1><span>123</span>'
+        soup = BeautifulSoup(s,'html.parser')     # html.parser为解析器
+        print(soup.text)
+

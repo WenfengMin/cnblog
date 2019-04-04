@@ -1,14 +1,10 @@
 from django.db import models
-
-# Create your models here.
-
 from django.contrib.auth.models import User,AbstractUser
 
 
 class UserInfo(AbstractUser):
     '''
-    用户信息
-        用了继承关系AbstractUser之后，不会再生成auth_user表了
+    用户信息：用了继承关系AbstractUser之后，不会再生成auth_user表了
     '''
     nid = models.AutoField(primary_key=True)
     telephone = models.CharField(max_length=11,null=True,unique=True)
@@ -27,7 +23,9 @@ class Blog(models.Model):
     '''
     nid = models.AutoField(primary_key=True)
     title = models.CharField(verbose_name='个人博客标题',max_length=64)
+    # 每个人的站点后缀，如wupeiqi/alex/soft等
     site_name = models.CharField(verbose_name='站点名称',max_length=64)
+    # 每个人的博客都有自己的一css个样式
     theme = models.CharField(verbose_name='博客主题',max_length=32)
 
     def __str__(self):
@@ -36,7 +34,7 @@ class Blog(models.Model):
 
 class Category(models.Model):
     '''
-    博主个人文章分类表
+    个人文章分类表
     '''
     nid = models.AutoField(primary_key=True)
     title = models.CharField(verbose_name='分类标题',max_length=32)
@@ -48,7 +46,7 @@ class Category(models.Model):
 
 class Tag(models.Model):
     '''
-    博主个人文章标签表
+    个人文章标签表
     '''
     nid = models.AutoField(primary_key=True)
     title = models.CharField(verbose_name='标签名称', max_length=32)
@@ -78,7 +76,8 @@ class Article(models.Model):
     # 多对多：一篇文章可以有多个标签，一个标签里也有多篇文章
     tags = models.ManyToManyField(
         to='Tag',
-        through='Article2Tag',     # 中间模型，手动创建关联表
+        through='Article2Tag',     # 中间模型，手动创建二者的关联表Article2Tag
+        # through参数指定作为中介的中间模型
         through_fields=('article','tag'),
     )
 
@@ -86,8 +85,10 @@ class Article(models.Model):
         return self.title
 
 
-class Article2Tag(models.Model):
+class Article2Tag(models.Model):     # 手动创建关联表Article2Tag
     nid = models.AutoField(primary_key=True)
+    # 这两个外键定义了两个模型之间是如何关联到一起的
+    # 二者关系表：两个ForeignKey的关联字段，双向的一对多——>多对多
     article = models.ForeignKey(verbose_name='文章',to='Article',to_field='nid',on_delete=models.CASCADE)
     tag = models.ForeignKey(verbose_name='标签',to='Tag',to_field='nid',on_delete=models.CASCADE)
 
@@ -119,8 +120,7 @@ class ArticleUpDown(models.Model):
 
 class Comment(models.Model):
     '''
-    评论表：
-        哪一个用户，对哪一篇文章，在什么时间，做了什么评论
+    评论表：哪一个用户，对哪一篇文章，在什么时间，做了什么评论
     '''
     nid = models.AutoField(primary_key=True)
 

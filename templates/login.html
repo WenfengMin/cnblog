@@ -20,6 +20,7 @@
                     <label for="pwd">密码</label>
                     <input type="password" id="pwd" class="form-control">
                 </div>
+
                 <div class="form-group">
                     <label for="pwd">验证码</label>
                     <div class="row">
@@ -31,7 +32,9 @@
                         </div>
                     </div>
                 </div>
-                <input type="button" value='登录' class="btn btn-default pull-right login_btn">
+
+                <input type="button" value='登录' class="btn btn-default login_btn"><span class="error"></span>
+                <a href="/register/" class="btn btn-success pull-right">注册</a>
             </form>
         </div>
     </div>
@@ -39,10 +42,10 @@
 
 <script src="/static/blog/bootstrap/js/jquery-3.3.1.min.js"></script>
 <script>
-{#    验证码刷新#}
+{#    验证码刷新：点击图片，对src不断的做出改变，即在后面多加一个？即可实现局部刷新，不用额外发送ajax请求#}
     $('#valid_code_img').click(function () {
         $(this)[0].src += '?'
-    })
+    });
 
 {#    登录验证#}
     $('.login_btn').click(function () {
@@ -50,16 +53,28 @@
             url:'',
             type:'post',
             data:{
-                user:$('#user').val,
-                pwd:$('#pwd').val,
+                user:$('#user').val(),
+                pwd:$('#pwd').val(),
                 valid_code:$('#valid_code').val(),
-                csrfmiddlewaretoken:$("[name='csrfmiddlewaretoken']").val(),
+                {#发送post请求，一定要通过csrf校验，ajax发送，必须自己组装该键值对发送给服务器#}
+                {#csrfmiddlewaretoken:$("[name='csrfmiddlewaretoken']").val(),#}
+{#                {{ csrf_token }}#}
             },
             success:function(data){
-                    console.log(data)
-        }
+                if(data.user){
+                    {# 前端的跳转方法：location.href #}
+                    location.href = '/index/' ;   {# 跳转到首页 #}
+                }
+                else {
+                    $('.error').html(data.msg).css({'color':'red','margin-left':'15px'});
+                    
+                    setTimeout(function () {   {# 2s后清空该错误提示 #}
+                        $('.error').html('')
+                    },2000);
+                }
+            }
         })
-    })
+    });
 
 </script>
 
